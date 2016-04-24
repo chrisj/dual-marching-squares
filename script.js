@@ -19,7 +19,7 @@ var Y_OFF = DIMENSION;
 function render() {
 	ctx.clearRect(0, 0, SIZE, SIZE);
 
-	ctx.strokeStyle = "black";
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
 
 	ctx.font = "10px monospace";
 
@@ -164,11 +164,6 @@ function march() {
 			var x = i % DIMENSION;
 			var y = Math.floor(i / DIMENSION);
 
-			if (counts[i] >= table.length || !table[counts[i]]) {
-				console.log('not ready', counts[i]);
-				continue;
-			}
-
 			var edgeOffsets = deepCopy(table[counts[i]]);
 
 			for (let edgeOffset of edgeOffsets) {
@@ -191,13 +186,6 @@ var DM_VERT_POS = [
 	[0.25, 0.75],
 ];
 
-// var DM_VERTS = [
-// 	[0],
-// 	[0.25, 0.25],
-// 	[0.75, 0.25],
-// 	[0.75, 0.75],
-// 	[0.25, 0.75],
-// ];
 
 // offset to neighor for each each (starting top left CW)
 var DM_EDGES = [
@@ -206,7 +194,6 @@ var DM_EDGES = [
 	Y_OFF,
 	-X_OFF,
 ];
-
 
 var table2 = [
 	[],
@@ -249,11 +236,6 @@ function dual_march() {
 			var x = i % DIMENSION;
 			var y = Math.floor(i / DIMENSION);
 
-			if (counts[i] >= table2.length || !table2[counts[i]]) {
-				console.log('not ready', counts[i]);
-				continue;
-			}
-
 			var verts = table2[counts[i]];
 
 			for (let vert of verts) {
@@ -264,18 +246,10 @@ function dual_march() {
 
 				let neighborVerts = table2[counts[neighbor]];
 
-				if (!neighborVerts) {
-					console.log(x, y, counts[i]);
-				}
-
 				var nx = neighbor % DIMENSION;
 				var ny = Math.floor(neighbor / DIMENSION);
 
 				let first = neighborVerts[vert.edge < 0 ? 0 : neighborVerts.length - 1];
-
-				if (!first) {
-					console.log(x, y, nx, ny);
-				}
 
 				let position2 = first.pos;
 
@@ -305,21 +279,46 @@ function update() {
 }
 update.dual = false;
 
-canvas.addEventListener('click', function (e) {
-	// console.log(e);
-
-	var gridX = Math.round(e.clientX / SPACING);
-	var gridY = Math.round(e.clientY / SPACING);
-
-	var idx = gridY * DIMENSION + gridX;
+function flipPixel(idx, on) {
+	if (on !== undefined && state[idx] == on) {
+		return;
+	}
 
 	state[idx] = 1 - state[idx];
-
 	update();
-});
+}
 
 document.addEventListener('keyup', function (e) {
-	update.dual = !update.dual;
-	update();
+	if (e.keyCode === 32) {
+		update.dual = !update.dual;
+		update();
+	}
 });
 
+var lastIdx = null;
+
+document.addEventListener('mouseup', function (e) {
+	lastIdx = null;
+});
+
+function handleMouse(e, force) {
+	var forceOn = force ? undefined : !e.shiftKey;
+	if (e.buttons) {
+		var gridX = Math.round(e.clientX / SPACING);
+		var gridY = Math.round(e.clientY / SPACING);
+
+		if (gridX === 0 || gridX === DIMENSION - 1 || gridY === 0 || gridY === DIMENSION - 1) {
+			return;
+		}
+
+		var idx = gridY * DIMENSION + gridX;
+
+		if (idx !== lastIdx) {
+			lastIdx = idx;
+			flipPixel(idx, forceOn);
+		}
+	}
+}
+
+document.addEventListener('mousemove', handleMouse);
+document.addEventListener('mousedown', (e) => handleMouse(e, true));
