@@ -2,7 +2,7 @@ var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
 var SIZE = canvas.width;
-var DIMENSION = 10;
+var DIMENSION = 12;
 var SPACING = Math.floor(SIZE / (DIMENSION - 1));
 
 var state = new Uint8Array(DIMENSION * DIMENSION);
@@ -16,36 +16,70 @@ var vertices = [];
 var X_OFF = 1;
 var Y_OFF = DIMENSION;
 
+var hover = null;
+
+var cleanMode = false;
+
+var pixelMode = false;
+
 function render() {
 	ctx.clearRect(0, 0, SIZE, SIZE);
 
 	ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
 
-	ctx.font = "10px monospace";
+	ctx.font = `${Math.floor(SPACING / 5)}px monospace`;
 
-	ctx.beginPath();
-	for (var x = 1; x < DIMENSION - 1; x++) {
-		ctx.moveTo(x * SPACING - 0.5, 0);
-		ctx.lineTo(x * SPACING - 0.5, SIZE);
-	};
-	ctx.stroke();
+	if (!cleanMode) {
 
-	ctx.beginPath();
-	for (var y = 1; y < DIMENSION - 1; y++) {
-		ctx.moveTo(0, y * SPACING - 0.5);
-		ctx.lineTo(SIZE, y * SPACING - 0.5);
-	};
-	ctx.stroke();
+		ctx.beginPath();
+		for (var x = 1; x < DIMENSION - 1; x++) {
+			ctx.moveTo(x * SPACING - 0.5, 0);
+			ctx.lineTo(x * SPACING - 0.5, SIZE);
+		};
+		ctx.stroke();
 
-	for (var i = 0; i < state.length; i++) {
-		if (state[i]) {
-			var x = i % DIMENSION;
-			var y = Math.floor(i / DIMENSION);
-			var circle = new Path2D();
-			circle.arc(x * SPACING, y * SPACING, 5, 0, 2 * Math.PI);
-			ctx.fill(circle);
+		ctx.beginPath();
+		for (var y = 1; y < DIMENSION - 1; y++) {
+			ctx.moveTo(0, y * SPACING - 0.5);
+			ctx.lineTo(SIZE, y * SPACING - 0.5);
+		};
+		ctx.stroke();
+
+		for (var i = 0; i < state.length; i++) {
+			if (state[i]) {
+				var x = i % DIMENSION;
+				var y = Math.floor(i / DIMENSION);
+
+				if (pixelMode) {
+					ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+					ctx.fillRect((x - 0.5) * SPACING, (y - 0.5) * SPACING, SPACING, SPACING);
+				} else {
+					ctx.fillStyle = "black";
+					var circle = new Path2D();
+					circle.arc(x * SPACING, y * SPACING, SPACING / 15, 0, 2 * Math.PI);
+
+					ctx.fill(circle);
+				}
+				
+			}
 		}
 	}
+
+	// hover
+	if (!cleanMode && hover !== null) {
+		var x = hover % DIMENSION;
+		var y = Math.floor(hover / DIMENSION);
+		var circle = new Path2D();
+		circle.arc(x * SPACING, y * SPACING, SPACING / 15, 0, 2 * Math.PI);
+		if (state[hover]) {
+			ctx.fillStyle = "red";
+		} else {
+			ctx.fillStyle = "green";
+		}
+		ctx.fill(circle);
+	}
+
+	ctx.fillStyle = "rgba(0, 0, 0, 1.0)";
 
 	for (var i = 0; i < edges.length; i++) {
 		var pos1 = edges[i][0];
@@ -72,35 +106,37 @@ function render() {
 		edge.lineTo(x2, y2);
 		ctx.stroke(edge);
 
-		ctx.strokeStyle = "blue";
-
-		edge = new Path2D();
-
-		edge.moveTo(midX, midY);
-		edge.lineTo(normX, normY);
-		ctx.stroke(edge);
-	}
-
-	for (var i = 0; i < counts.length; i++) {
-
-		if (counts[i]) {
-			var x = i % DIMENSION;
-			var y = Math.floor(i / DIMENSION);
-
-			x += 0.1;
-			y += 0.2;
-
-			ctx.fillText(counts[i], x * SPACING, y * SPACING);
+		// draw normal
+		if (!cleanMode) {
+			ctx.strokeStyle = "blue";
+			edge = new Path2D();
+			edge.moveTo(midX, midY);
+			edge.lineTo(normX, normY);
+			ctx.stroke(edge);
 		}
 	}
 
+	if (!cleanMode) {
+		for (var i = 0; i < counts.length; i++) {
+			if (counts[i]) {
+				var x = i % DIMENSION;
+				var y = Math.floor(i / DIMENSION);
 
-	for (var i = 0; i < vertices.length; i++) {
-		var vertex = vertices[i];
+				x += 0.1;
+				y += 0.2;
 
-		var circle = new Path2D();
-		circle.arc(vertex[0] * SPACING, vertex[1] * SPACING, 3, 0, 2 * Math.PI);
-		ctx.fill(circle);
+				ctx.fillText(counts[i], x * SPACING, y * SPACING);
+			}
+		}
+
+
+		for (var i = 0; i < vertices.length; i++) {
+			var vertex = vertices[i];
+
+			var circle = new Path2D();
+			circle.arc(vertex[0] * SPACING, vertex[1] * SPACING, SPACING / 20, 0, 2 * Math.PI);
+			ctx.fill(circle);
+		}
 	}
 }
 
@@ -111,7 +147,7 @@ var V = [
 	[0.0, 0.5]
 ];
 
-var table = [
+var MC_TABLE = [
 	[],
 	[[0, 3]],
 	[[1, 0]],
@@ -129,7 +165,7 @@ var table = [
 	[[3, 0]],
 ];
 
-table = table.map(edges => edges.map(edge => edge.map(vert => V[vert])));
+MC_TABLE = MC_TABLE.map(edges => edges.map(edge => edge.map(vert => V[vert])));
 
 
 function deepCopy(array) {
@@ -164,7 +200,7 @@ function march() {
 			var x = i % DIMENSION;
 			var y = Math.floor(i / DIMENSION);
 
-			var edgeOffsets = deepCopy(table[counts[i]]);
+			var edgeOffsets = deepCopy(MC_TABLE[counts[i]]);
 
 			for (let edgeOffset of edgeOffsets) {
 				edgeOffset[0][0] += x;
@@ -186,7 +222,6 @@ var DM_VERT_POS = [
 	[0.25, 0.75],
 ];
 
-
 // offset to neighor for each each (starting top left CW)
 var DM_EDGES = [
 	-Y_OFF,
@@ -195,7 +230,7 @@ var DM_EDGES = [
 	-X_OFF,
 ];
 
-var table2 = [
+var DM_TABLE = [
 	[],
 	[{ pos: 1, edge: 3}],
 	[{ pos: 2, edge: 0}],
@@ -212,7 +247,7 @@ var table2 = [
 	[{ pos: 2, edge: 1}],
 	[{ pos: 1, edge: 0}],
 ];
-table2 = table2.map(vs => vs.map(v => {
+DM_TABLE = DM_TABLE.map(vs => vs.map(v => {
 	v.pos = DM_VERT_POS[v.pos]
 	v.edge = DM_EDGES[v.edge];
 	return v;
@@ -236,7 +271,7 @@ function dual_march() {
 			var x = i % DIMENSION;
 			var y = Math.floor(i / DIMENSION);
 
-			var verts = table2[counts[i]];
+			var verts = DM_TABLE[counts[i]];
 
 			for (let vert of verts) {
 				let position = vert.pos;
@@ -244,7 +279,7 @@ function dual_march() {
 
 				let neighbor = i + vert.edge;
 
-				let neighborVerts = table2[counts[neighbor]];
+				let neighborVerts = DM_TABLE[counts[neighbor]];
 
 				var nx = neighbor % DIMENSION;
 				var ny = Math.floor(neighbor / DIMENSION);
@@ -291,34 +326,64 @@ function flipPixel(idx, on) {
 document.addEventListener('keyup', function (e) {
 	if (e.keyCode === 32) {
 		update.dual = !update.dual;
+
+		document.getElementById("title").innerHTML = update.dual ? 'Dual Marching Cubes' : 'Marching Cubes';
 		update();
 	}
+
+	if (e.keyCode === 67) {
+		cleanMode = !cleanMode;
+	}
+
+	if (e.keyCode === 80) {
+		pixelMode = !pixelMode;
+	}
+
+	render();
 });
 
 var lastIdx = null;
 
+var deselecting = false;
+
 document.addEventListener('mouseup', function (e) {
 	lastIdx = null;
+	deselecting = false;
 });
 
-function handleMouse(e, force) {
-	var forceOn = force ? undefined : !e.shiftKey;
-	if (e.buttons) {
-		var gridX = Math.round(e.clientX / SPACING);
-		var gridY = Math.round(e.clientY / SPACING);
+function handleMouse(e, click) {
+	// var forceOn = click ? undefined : !e.shiftKey;
+	var gridX = Math.round(e.offsetX / SPACING);
+	var gridY = Math.round(e.offsetY / SPACING);
 
-		if (gridX === 0 || gridX === DIMENSION - 1 || gridY === 0 || gridY === DIMENSION - 1) {
-			return;
+	if (gridX < 1 || gridX > DIMENSION - 2 || gridY < 1 || gridY > DIMENSION - 2) {
+		if (hover !== null) {
+			hover = null;
+			render();
 		}
+		return;
+	}
 
-		var idx = gridY * DIMENSION + gridX;
+	var idx = gridY * DIMENSION + gridX;
 
+	if (e.buttons) {
+		hover = null;
 		if (idx !== lastIdx) {
 			lastIdx = idx;
-			flipPixel(idx, forceOn);
+
+			if (click && state[idx]) {
+				deselecting = true;
+			}
+
+			flipPixel(idx, !deselecting);
 		}
+	} else {
+		hover = idx;
+		render();
 	}
 }
 
-document.addEventListener('mousemove', handleMouse);
-document.addEventListener('mousedown', (e) => handleMouse(e, true));
+canvas.addEventListener('mousemove', handleMouse);
+canvas.addEventListener('mousedown', (e) => {
+	handleMouse(e, true);
+});
