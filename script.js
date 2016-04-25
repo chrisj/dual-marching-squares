@@ -327,7 +327,6 @@ document.addEventListener('keyup', function (e) {
 	if (e.keyCode === 32) {
 		update.dual = !update.dual;
 
-		document.getElementById("title").innerHTML = update.dual ? 'Dual Marching Squares' : 'Marching Squares';
 		update();
 	}
 
