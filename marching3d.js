@@ -4,6 +4,15 @@ var state = new Uint8Array(DIMENSION * DIMENSION * DIMENSION);
 
 var vertices = [];
 
+var triangles = [];
+
+var vertIdx = new Uint8Array(DIMENSION * DIMENSION * DIMENSION);
+// for each cell that has vertices, set somearray to the current index of the vertex list
+// then add the vertices, that way, we can look up vertices for each cell, it is a lot of memory though
+
+
+
+
 state[1 + 1 * DIMENSION + 1 * DIMENSION * DIMENSION] = 1;
 
 
@@ -27,11 +36,153 @@ function idxToXYZ(i) {
 
 var EPS = 0.25;
 
+var EDGE_SOMETHING = [
+	[-Y_OFF,-Z_OFF-Y_OFF,-Z_OFF],
+	null,
+	null,
+	[-X_OFF, -Y_OFF-X_OFF,-Y_OFF],
+	null,
+	null,
+	null,
+	null,
+	[-Z_OFF, -X_OFF-Z_OFF,-X_OFF],
+]
+
+var EDGE_TABLE = [
+	null,
+	[0, 3, 8],
+]
 
 var VERT_TABLE = [
 	null,
 	[EPS, EPS, EPS],
-	[1-EPS, EPS, EPS]
+	[1-EPS, EPS, EPS],
+	null,
+	[1-EPS, EPS, 1-EPS],
+	null,
+	null,
+	null,
+	[EPS, EPS, 1-EPS],
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	[EPS, 1-EPS, EPS],
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	[1-EPS, 1-EPS, EPS],
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	[1-EPS, 1-EPS, 1-EPS], // 64
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	[EPS, 1-EPS, 1-EPS], // 128
 ];
 
 
@@ -61,6 +212,8 @@ function dual_march() {
 	for (var i = 0; i < state.length; i++) {
 		if (counts[i] !== 0 && counts[i] !== 255) {
 
+			vertIdx[i] = vertices.length;
+
 			if (counts[i] < VERT_TABLE.length) {
 				var [x, y, z] = idxToXYZ(i);
 
@@ -72,6 +225,27 @@ function dual_march() {
 					y + oy,
 					z + oz
 				]);
+			}
+
+
+			if (counts[i] < EDGE_TABLE.length) {
+				var edges = EDGE_TABLE[counts[i]];
+
+				for (let edge of edges) {
+					var offs = EDGE_SOMETHING[edge];
+
+					triangles.push([
+						vertIdx[i + 0],
+						vertIdx[i + offs[0]],
+						vertIdx[i + offs[1]]
+					]);
+
+					triangles.push([
+						vertIdx[i + 0],
+						vertIdx[i + offs[1]],
+						vertIdx[i + offs[2]]
+					]);
+				}
 			}
 			
 

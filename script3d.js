@@ -26,6 +26,14 @@ var camera = (function (perspFov, viewHeight) {
     10 // Far clipping plane
   );
 
+
+  var directionalLight = new THREE.DirectionalLight( 0xffffff, 1.0 );
+
+  directionalLight.position.set(0, 0, 1);
+
+  realCamera.add(directionalLight);
+
+
   realCamera.position.set(0, 0, simpleViewHeight(perspFov, viewHeight) / perspFov);
   realCamera.up.set(0, 1, 0);
   realCamera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -305,6 +313,33 @@ function updateState() {
       text.position.set(x + 0.5, y + 0.5, z + 0.5);
       stateContainer.add(text);
     }
+  }
+
+
+  var triMat = new THREE.MeshLambertMaterial({
+    color: 'blue',
+    transparent: true,
+    opacity: 1
+  });
+
+
+  for (var i = 0; i < triangles.length; i++) {
+    var verts = triangles[i].map(vertIdx => vertices[vertIdx]);
+
+    var tri = new THREE.Geometry();
+
+    for (let [x, y, z] of verts) {
+      tri.vertices.push(new THREE.Vector3(x, y, z))
+    }
+
+    console.log(tri.vertices);
+
+    tri.faces.push( new THREE.Face3( 0, 1, 2 ) );
+    tri.computeFaceNormals();
+
+    var triMesh = new THREE.Mesh(tri, triMat);
+
+    stateContainer.add(triMesh);
   }
 
 }
