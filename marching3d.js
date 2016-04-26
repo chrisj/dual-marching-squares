@@ -282,7 +282,7 @@ function dual_march() {
 						vertIdx[i + offs[2]]
 					]);
 
-					if (!(edge > 0 && Object.is(Math.sign(edge), 0))) {
+					if (!(edge > 0 || Object.is(Math.sign(edge), 0))) {
 						offs.reverse();
 					}
 				}
