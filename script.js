@@ -2,19 +2,7 @@ var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
 var SIZE = canvas.width;
-var DIMENSION = 12;
 var SPACING = Math.floor(SIZE / (DIMENSION - 1));
-
-var state = new Uint8Array(DIMENSION * DIMENSION);
-var counts = new Uint8Array(state.length);
-
-var edges = [];
-
-var vertices = [];
-
-
-var X_OFF = 1;
-var Y_OFF = DIMENSION;
 
 var hover = null;
 
@@ -86,10 +74,10 @@ function render() {
 		var pos2 = edges[i][1];
 		var edge = new Path2D();
 
-		var x1 = Math.floor(pos1[0] * SPACING);
-		var y1 = Math.floor(pos1[1] * SPACING);
-		var x2 = Math.floor(pos2[0] * SPACING);
-		var y2 = Math.floor(pos2[1] * SPACING);
+		var x1 = (pos1[0] * SPACING);
+		var y1 = (pos1[1] * SPACING);
+		var x2 = (pos2[0] * SPACING);
+		var y2 = (pos2[1] * SPACING);
 
 
 		var midX = Math.floor((x1 + x2) / 2);
@@ -114,8 +102,16 @@ function render() {
 			edge.lineTo(normX, normY);
 			ctx.stroke(edge);
 		}
+
+		// draw vertex
+		if (!cleanMode) {
+			var circle = new Path2D();
+			circle.arc(x1 * SPACING, y1 * SPACING, SPACING / 20, 0, 2 * Math.PI);
+			ctx.fill(circle);
+		}
 	}
 
+	// draw counts
 	if (!cleanMode) {
 		for (var i = 0; i < counts.length; i++) {
 			if (counts[i]) {
@@ -128,175 +124,8 @@ function render() {
 				ctx.fillText(counts[i], x * SPACING, y * SPACING);
 			}
 		}
-
-
-		for (var i = 0; i < vertices.length; i++) {
-			var vertex = vertices[i];
-
-			var circle = new Path2D();
-			circle.arc(vertex[0] * SPACING, vertex[1] * SPACING, SPACING / 20, 0, 2 * Math.PI);
-			ctx.fill(circle);
-		}
 	}
 }
-
-var V = [
-	[0.5, 0.0],
-	[1.0, 0.5],
-	[0.5, 1.0],
-	[0.0, 0.5]
-];
-
-var MC_TABLE = [
-	[],
-	[[0, 3]],
-	[[1, 0]],
-	[[1, 3]],
-	[[3, 2]],
-	[[0, 2]],
-	[[1, 0], [3, 2]], // 2 and 4
-	[[1, 2]],
-	[[2, 1]],
-	[[0, 3], [2, 1]], // 1 and 8
-	[[2, 0]],
-	[[2, 3]],
-	[[3, 1]],
-	[[0, 1]],
-	[[3, 0]],
-];
-
-MC_TABLE = MC_TABLE.map(edges => edges.map(edge => edge.map(vert => V[vert])));
-
-
-function deepCopy(array) {
-	return JSON.parse(JSON.stringify(array));
-}
-
-function calculateNormal(edge) {
-	var dx = edge[1][0] - edge[0][0];
-	var dy = edge[1][1] - edge[0][1];
-
-	var length = Math.sqrt(dx * dx + dy * dy);
-
-	return [dy / length, -dx / length];
-}
-
-
-function march() {
-	for (var i = 0; i < state.length; i++) {
-		if (state[i]) {
-			var x = i % DIMENSION;
-			var y = Math.floor(i / DIMENSION);
-
-			counts[i] |= 1;
-			counts[i - X_OFF] |= 2;
-			counts[i - Y_OFF] |= 4;
-			counts[i - X_OFF - Y_OFF] |= 8;
-		}
-	}
-
-	for (var i = 0; i < state.length; i++) {
-		if (counts[i] > 0 && counts[i] < 15) {
-			var x = i % DIMENSION;
-			var y = Math.floor(i / DIMENSION);
-
-			var edgeOffsets = deepCopy(MC_TABLE[counts[i]]);
-
-			for (let edgeOffset of edgeOffsets) {
-				edgeOffset[0][0] += x;
-				edgeOffset[1][0] += x;
-				edgeOffset[0][1] += y;
-				edgeOffset[1][1] += y;
-
-				edges.push(edgeOffset);
-			}
-		}
-	}
-}
-
-var DM_VERT_POS = [
-	[0.5, 0.5],
-	[0.25, 0.25],
-	[0.75, 0.25],
-	[0.75, 0.75],
-	[0.25, 0.75],
-];
-
-// offset to neighor for each each (starting top left CW)
-var DM_EDGES = [
-	-Y_OFF,
-	X_OFF,
-	Y_OFF,
-	-X_OFF,
-];
-
-var DM_TABLE = [
-	[],
-	[{ pos: 1, edge: 3}],
-	[{ pos: 2, edge: 0}],
-	[{ pos: 0, edge: 3}],
-	[{ pos: 4, edge: 2}],
-	[{ pos: 0, edge: 2}],
-	[{ pos: 2, edge: 0}, { pos: 4, edge: 2}], // 2 and 4
-	[{ pos: 3, edge: 2}],
-	[{ pos: 3, edge: 1}],
-	[{ pos: 3, edge: 1}, { pos: 1, edge: 3}], // 1 and 8
-	[{ pos: 0, edge: 0}],
-	[{ pos: 4, edge: 3}],
-	[{ pos: 0, edge: 1}],
-	[{ pos: 2, edge: 1}],
-	[{ pos: 1, edge: 0}],
-];
-DM_TABLE = DM_TABLE.map(vs => vs.map(v => {
-	v.pos = DM_VERT_POS[v.pos]
-	v.edge = DM_EDGES[v.edge];
-	return v;
-}));
-
-function dual_march() {
-	for (var i = 0; i < state.length; i++) {
-		if (state[i]) {
-			var x = i % DIMENSION;
-			var y = Math.floor(i / DIMENSION);
-
-			counts[i] |= 1;
-			counts[i - X_OFF] |= 2;
-			counts[i - Y_OFF] |= 4;
-			counts[i - X_OFF - Y_OFF] |= 8;
-		}
-	}
-
-	for (var i = 0; i < state.length; i++) {
-		if (counts[i] > 0 && counts[i] < 15) {
-			var x = i % DIMENSION;
-			var y = Math.floor(i / DIMENSION);
-
-			var verts = DM_TABLE[counts[i]];
-
-			for (let vert of verts) {
-				let position = vert.pos;
-				vertices.push([position[0] + x, position[1] + y]);
-
-				let neighbor = i + vert.edge;
-
-				let neighborVerts = DM_TABLE[counts[neighbor]];
-
-				var nx = neighbor % DIMENSION;
-				var ny = Math.floor(neighbor / DIMENSION);
-
-				let first = neighborVerts[vert.edge < 0 ? 0 : neighborVerts.length - 1];
-
-				let position2 = first.pos;
-
-				edges.push([
-					[position[0] + x, position[1] + y],
-					[position2[0] + nx, position2[1] + ny],
-				]);
-			}
-		}
-	}
-}
-
 
 
 // start
