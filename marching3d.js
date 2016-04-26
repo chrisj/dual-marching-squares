@@ -14,6 +14,7 @@ var vertIdx = new Uint8Array(DIMENSION * DIMENSION * DIMENSION);
 
 
 state[1 + 1 * DIMENSION + 1 * DIMENSION * DIMENSION] = 1;
+state[2 + 1 * DIMENSION + 1 * DIMENSION * DIMENSION] = 1;
 
 
 var counts = new Uint8Array(state.length);
@@ -52,9 +53,9 @@ var EDGE_SOMETHING = [
 // negative means reverse it
 var EDGE_TABLE = [
 	null,
-	[0, 3, 8],
+		[0, 3, 8],
 	[-0],
-	[],
+	[0, 3, 8],
 	[],
 	[],
 	[],
@@ -63,11 +64,46 @@ var EDGE_TABLE = [
 	[],
 	[],
 	[],
+	[-3],
+	[],
+	[],
+	[],
+	[-8],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
 	[],
 	[],
 	[],
 	[],
 	[-8],
+	[],
+	[],
+	[],
 ];
 
 var MIDDLE = [0.5, 0.5, 0.5];
@@ -96,7 +132,7 @@ var VERT_TABLE = [
 	null,
 	null,
 	null,
-	null,
+	MIDDLE,
 	null,
 	null,
 	null,
@@ -132,7 +168,7 @@ var VERT_TABLE = [
 	null,
 	null,
 	null,
-	null,
+	MIDDLE,
 	null,
 	null,
 	null,
@@ -213,6 +249,87 @@ var VERT_TABLE = [
 	null,
 	null,
 	C_7, // 128
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	MIDDLE,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
 ];
 
 
@@ -257,14 +374,15 @@ function dual_march() {
 				]);
 			}
 
-
 			if (counts[i] < EDGE_TABLE.length) {
 				var edges = EDGE_TABLE[counts[i]];
 
+				if (counts[i] === 48) {
+					console.log('here');
+				}
+
 				for (let edge of edges) {
 					var offs = EDGE_SOMETHING[Math.abs(edge)];
-
-					// console.log(edge, Math.sign(edge), edge > 0 || Object.is(Math.sign(edge), 0));
 
 					if (!(edge > 0 || Object.is(Math.sign(edge), 0))) {
 						offs.reverse();
