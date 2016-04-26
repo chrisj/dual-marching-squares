@@ -214,7 +214,7 @@ function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); 
     {
         if ( parameters === undefined ) parameters = {};
         var fontface = parameters.hasOwnProperty("fontface") ? parameters["fontface"] : "monospace";
-        var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 20;
+        var fontsize = parameters.hasOwnProperty("fontsize") ? parameters["fontsize"] : 60;
         var textColor = parameters.hasOwnProperty("textColor") ?parameters["textColor"] : { r:0, g:0, b:0, a:1.0 };
 
         var canvas = document.createElement('canvas');
@@ -225,15 +225,17 @@ function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); 
         var metrics = context.measureText( message );
         var textWidth = metrics.width;
 
+        context.textAlign = 'center';
+
         context.fillStyle = "rgba("+textColor.r+", "+textColor.g+", "+textColor.b+", 1.0)";
-        context.fillText( message, 128, 128);
+        context.fillText(message, 128, 128);
 
         var texture = new THREE.Texture(canvas);
         texture.needsUpdate = true;
 
         var spriteMaterial = new THREE.SpriteMaterial( { map: texture, depthTest: false });//, useScreenCoordinates: false } );
         var sprite = new THREE.Sprite( spriteMaterial );
-        // sprite.scale.set(0.5 * fontsize, 0.25 * fontsize, 0.75 * fontsize);
+        sprite.scale.set(0.4, 0.4, 0.4);
         return sprite;  
     }
 
