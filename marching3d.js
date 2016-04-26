@@ -68,26 +68,40 @@ var EDGE_TABLE = [
 	[],
 	[],
 	[-8],
-]
+];
+
+var MIDDLE = [0.5, 0.5, 0.5];
+
+
+var C_0 = [EPS, EPS, EPS];
+var C_1 = [1-EPS, EPS, EPS];
+var C_2 = [1-EPS, EPS, 1-EPS];
+var C_3 = [EPS, EPS, 1-EPS];
+var C_4 = [EPS, 1-EPS, EPS];
+var C_5 = [1-EPS, 1-EPS, EPS];
+var C_6 = [1-EPS, 1-EPS, 1-EPS];
+var C_7 = [EPS, 1-EPS, 1-EPS]
+
 
 var VERT_TABLE = [
 	null,
-	[EPS, EPS, EPS],
-	[1-EPS, EPS, EPS],
+	C_0,
+	C_1,
+	MIDDLE,
+	C_2,
 	null,
-	[1-EPS, EPS, 1-EPS],
 	null,
 	null,
+	C_3,
 	null,
-	[EPS, EPS, 1-EPS],
 	null,
 	null,
 	null,
 	null,
 	null,
 	null,
+	C_4,
 	null,
-	[EPS, 1-EPS, EPS],
 	null,
 	null,
 	null,
@@ -102,8 +116,8 @@ var VERT_TABLE = [
 	null,
 	null,
 	null,
+	C_5,
 	null,
-	[1-EPS, 1-EPS, EPS],
 	null,
 	null,
 	null,
@@ -134,8 +148,8 @@ var VERT_TABLE = [
 	null,
 	null,
 	null,
+	C_6, // 64
 	null,
-	[1-EPS, 1-EPS, 1-EPS], // 64
 	null,
 	null,
 	null,
@@ -198,8 +212,7 @@ var VERT_TABLE = [
 	null,
 	null,
 	null,
-	null,
-	[EPS, 1-EPS, 1-EPS], // 128
+	C_7, // 128
 ];
 
 
@@ -231,7 +244,7 @@ function dual_march() {
 
 			vertIdx[i] = vertices.length;
 
-			if (counts[i] < VERT_TABLE.length) {
+			if (counts[i] < VERT_TABLE.length && VERT_TABLE[counts[i]]) {
 				var [x, y, z] = idxToXYZ(i);
 
 
