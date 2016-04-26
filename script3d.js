@@ -332,8 +332,6 @@ function updateState() {
       tri.vertices.push(new THREE.Vector3(x, y, z))
     }
 
-    console.log(tri.vertices);
-
     tri.faces.push( new THREE.Face3( 0, 1, 2 ) );
     tri.computeFaceNormals();
 

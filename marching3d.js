@@ -48,9 +48,26 @@ var EDGE_SOMETHING = [
 	[-Z_OFF, -X_OFF-Z_OFF,-X_OFF],
 ]
 
+
+// negative means reverse it
 var EDGE_TABLE = [
 	null,
 	[0, 3, 8],
+	[-0],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[-3], //8
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[],
+	[-8],
 ]
 
 var VERT_TABLE = [
@@ -232,7 +249,13 @@ function dual_march() {
 				var edges = EDGE_TABLE[counts[i]];
 
 				for (let edge of edges) {
-					var offs = EDGE_SOMETHING[edge];
+					var offs = EDGE_SOMETHING[Math.abs(edge)];
+
+					// console.log(edge, Math.sign(edge), edge > 0 || Object.is(Math.sign(edge), 0));
+
+					if (!(edge > 0 || Object.is(Math.sign(edge), 0))) {
+						offs.reverse();
+					}
 
 					triangles.push([
 						vertIdx[i + 0],
@@ -245,6 +268,10 @@ function dual_march() {
 						vertIdx[i + offs[1]],
 						vertIdx[i + offs[2]]
 					]);
+
+					if (!(edge > 0 && Object.is(Math.sign(edge), 0))) {
+						offs.reverse();
+					}
 				}
 			}
 			
