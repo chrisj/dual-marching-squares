@@ -255,7 +255,13 @@ function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); 
 
 
 
+var wireframe;
+
+var prevVertCount = 0;
+
 function updateState() {
+  scene.remove(wireframe);
+
   for (var i = stateContainer.children.length - 1; i >= 0; i--) {
     stateContainer.remove(stateContainer.children[i]);
   }
@@ -276,8 +282,6 @@ function updateState() {
       stateContainer.add(test);
     }
   }
-
-  var prevVertCount = 0;
 
   for (var i = vertices.length; i < prevVertCount; i++) {
     particleGeo.vertices[i].set(-1000, -1000, -1000); // push it off the screen
@@ -318,35 +322,41 @@ function updateState() {
 
   var triMat = new THREE.MeshLambertMaterial({
     color: 'blue',
-    transparent: true,
-    opacity: 1
+    transparent: false,
+    opacity: 0.5,
+    side: THREE.DoubleSide,
   });
 
+
+  var tri = new THREE.Geometry();
 
   for (var i = 0; i < triangles.length; i++) {
     var verts = triangles[i].map(vertIdx => vertices[vertIdx]);
 
-    var tri = new THREE.Geometry();
-
     for (let [x, y, z] of verts) {
       tri.vertices.push(new THREE.Vector3(x, y, z))
     }
-
-    tri.faces.push( new THREE.Face3( 0, 1, 2 ) );
-    tri.computeFaceNormals();
-
-    var triMesh = new THREE.Mesh(tri, triMat);
-
-    stateContainer.add(triMesh);
+    tri.faces.push( new THREE.Face3( i * 3, i * 3 + 1, i * 3 + 2 ) );    
   }
 
+  var triMesh = new THREE.Mesh(tri, triMat);
+  tri.computeFaceNormals();
+
+  wireframe = new THREE.WireframeHelper( triMesh, 0xff0000 );
+
+  // wireframe.scale.set(1.1, 1.1, 1.1);
+
+  // wireframe.transparent = true;
+
+  wireframe.renderOrder = 1000;
+
+  stateContainer.add(triMesh);
+  scene.add(wireframe);
 }
 
 
-dual_march();
+march();
 updateState();
-
-
 
 
 
@@ -396,3 +406,31 @@ function mousewheel( event ) {
 
 
 document.addEventListener('wheel', mousewheel, false);
+
+var dual = false; // normal
+
+document.addEventListener('keyup', function (e) {
+  if (e.keyCode === 32) {
+    dual = !dual;
+
+    if (dual) {
+      dual_march();
+    } else {
+      march();
+    }
+
+    updateState();
+
+    needsRender = true;
+  }
+
+  // if (e.keyCode === 67) {
+  //   cleanMode = !cleanMode;
+  // }
+
+  // if (e.keyCode === 80) {
+  //   pixelMode = !pixelMode;
+  // }
+
+  // render();
+});
