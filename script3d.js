@@ -1,3 +1,5 @@
+var cleanMode = true;
+
 var renderer = new THREE.WebGLRenderer({
   antialias: true,
   // preserveDrawingBuffer: true, // TODO, maybe this is sometimes required if you use ctx.readpixels but since we call it immediately after render, it isn't actually required
@@ -23,7 +25,7 @@ var camera = (function (perspFov, viewHeight) {
     1, // Aspect ratio (set later) TODO why?
     0.001, // Inner clipping plane // TODO, at 0.1 you start to see white artifacts when scrolling quickly
     // TODO, small inner clipping causes depth buffer issue, lot to read about but really small inner plane destroys z precision
-    10 // Far clipping plane
+    1000 // Far clipping plane
   );
 
 
@@ -88,7 +90,7 @@ var container = new THREE.Object3D();
 
 var grid = new THREE.Object3D();
 
-container.add(grid);
+// container.add(grid);
 
 container.position.set(-0.5, -0.5, -0.5);
 
@@ -266,6 +268,7 @@ function updateState() {
     stateContainer.remove(stateContainer.children[i]);
   }
 
+  if (!cleanMode) {
   for (var i = 0; i < state.length; i++) {
     if (state[i]) {
       var [x, y, z] = idxToXYZ(i);
@@ -292,6 +295,8 @@ function updateState() {
     particleGeo.vertices[i].set(vertex[0], vertex[1], vertex[2]);
   }
 
+  }
+
   prevVertCount = vertices.length;
 
 
@@ -308,6 +313,7 @@ function updateState() {
   particleGeo.verticesNeedUpdate = true;
 
 
+  if (!cleanMode) {
   for (var i = 0; i < counts.length; i++) {
     if (counts[i] > 0) {
       var [x, y, z] = idxToXYZ(i);
@@ -319,12 +325,14 @@ function updateState() {
     }
   }
 
+  }
+
 
   var triMat = new THREE.MeshLambertMaterial({
     color: 'blue',
     transparent: false,
     opacity: 0.5,
-    side: THREE.DoubleSide,
+    // side: THREE.DoubleSide,
   });
 
 
@@ -342,20 +350,22 @@ function updateState() {
   var triMesh = new THREE.Mesh(tri, triMat);
   tri.computeFaceNormals();
 
-  wireframe = new THREE.WireframeHelper( triMesh, 0xff0000 );
+  if (!cleanMode) {
+    wireframe = new THREE.WireframeHelper( triMesh, 0xff0000 );
 
   // wireframe.scale.set(1.1, 1.1, 1.1);
 
   // wireframe.transparent = true;
 
   wireframe.renderOrder = 1000;
+  scene.add(wireframe);
+  }
 
   stateContainer.add(triMesh);
-  scene.add(wireframe);
 }
 
 
-march();
+dual_march();
 updateState();
 
 
@@ -407,7 +417,7 @@ function mousewheel( event ) {
 
 document.addEventListener('wheel', mousewheel, false);
 
-var dual = false; // normal
+var dual = true; // normal
 
 document.addEventListener('keyup', function (e) {
   if (e.keyCode === 32) {
@@ -424,9 +434,12 @@ document.addEventListener('keyup', function (e) {
     needsRender = true;
   }
 
-  // if (e.keyCode === 67) {
-  //   cleanMode = !cleanMode;
-  // }
+  if (e.keyCode === 67) {
+    cleanMode = !cleanMode;
+
+    updateState();
+    needsRender = true;
+  }
 
   // if (e.keyCode === 80) {
   //   pixelMode = !pixelMode;

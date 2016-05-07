@@ -12,7 +12,7 @@ var vertIdx = new Uint8Array(DIMENSION * DIMENSION * DIMENSION);
 
 
 
-state[1 + 1 * DIMENSION + 1 * DIMENSION * DIMENSION] = 1;
+// state[1 + 1 * DIMENSION + 1 * DIMENSION * DIMENSION] = 1;
 state[1 + 2 * DIMENSION + 1 * DIMENSION * DIMENSION] = 1;
 // state[1 + 1 * DIMENSION + 2 * DIMENSION * DIMENSION] = 1;
 // state[1 + 2 * DIMENSION + 2 * DIMENSION * DIMENSION] = 1;
@@ -29,6 +29,8 @@ var X_OFF = 1;
 var Y_OFF = DIMENSION;
 var Z_OFF = DIMENSION * DIMENSION;
 
+var DUAL_TABLE = genTable();
+
 function idxToXYZ(i) {
   var z = Math.floor(i / Z_OFF);
   var y = Math.floor((i - z * Z_OFF) / Y_OFF);
@@ -37,15 +39,11 @@ function idxToXYZ(i) {
   return [x, y, z];
 }
 
-var EDGE_SOMETHING = [
-	[0, -Y_OFF,-Z_OFF,-Z_OFF-Y_OFF],null,null,
-	[0, -X_OFF,-Y_OFF, -Y_OFF-X_OFF],null,null,null,null,
-	[0, -Z_OFF, -X_OFF, -X_OFF-Z_OFF],null,
-	// for best split
-	[-Y_OFF,-Z_OFF-Y_OFF, 0, -Z_OFF],null,null,
-	[-X_OFF, -Y_OFF-X_OFF, 0, -Y_OFF],null,null,null,null,
-	[-Z_OFF, -X_OFF-Z_OFF, 0, -X_OFF],null,null,
-];
+var EDGE_TO_CELLS = {
+  0: [[-Z_OFF, -Z_OFF-Y_OFF, -Y_OFF], [2, 6, 4]],
+  3: [[-X_OFF, -X_OFF-Y_OFF, -Y_OFF], [1, 5, 7]],
+  8: [[-X_OFF, -Z_OFF-X_OFF, -Z_OFF], [9, 10, 11]]
+}
 
 function dual_march() {
 	vertices = [];
@@ -71,79 +69,54 @@ function dual_march() {
 
 			vertIdx[i] = vertices.length;
 
-			if (counts[i] < VERT_TABLE.length && VERT_TABLE[counts[i]]) {
-				var [x, y, z] = idxToXYZ(i);
+      var [x, y, z] = idxToXYZ(i);
 
+      var entry = DUAL_TABLE[counts[i]];
 
-				var [ox, oy, oz] = VERT_TABLE[counts[i]];
+      for (let [ox, oy, oz] of entry.vertices) {
+        vertices.push([
+          x + ox,
+          y + oy,
+          z + oz
+        ]);
+      }
 
-				vertices.push([
-					x + ox,
-					y + oy,
-					z + oz
-				]);
-			}
+      for (let edge of [0, 3, 8]) {
+        if (entry.edges[edge] >= 0) {
+          var offs = EDGE_TO_CELLS[edge];
 
-			if (counts[i] < EDGE_TABLE.length) {
-				var edges = EDGE_TABLE[counts[i]];
+          var edgeNums = offs[1].slice();
+          var offs = offs[0].slice();
 
-				for (let edge of edges) {
-					var offs = EDGE_SOMETHING[Math.abs(edge)];
+          if (entry.normals[edge] < 0) {
+            edgeNums.reverse();
+            offs.reverse();
+          }
 
-					if (!(edge > 0 || Object.is(Math.sign(edge), 0))) {
-						triangles.push([
-							vertIdx[i + offs[2]],
-							vertIdx[i + offs[1]],
-							vertIdx[i + offs[0]]
-						]);
+          var c2 = i + offs[0];
+          var c3 = i + offs[1];
+          var c4 = i + offs[2];
 
-						triangles.push([
-							vertIdx[i + offs[3]],
-							vertIdx[i + offs[1]],
-							vertIdx[i + offs[2]]
-						]);
-					} else {
-						triangles.push([
-							vertIdx[i + offs[0]],
-							vertIdx[i + offs[1]],
-							vertIdx[i + offs[2]]
-						]);
+          var c1V = vertIdx[i] + entry.edges[edge];
+          var c2V = vertIdx[c2] + DUAL_TABLE[counts[c2]].edges[edgeNums[0]];
+          var c3V = vertIdx[c3] + DUAL_TABLE[counts[c3]].edges[edgeNums[1]];
+          var c4V = vertIdx[c4] + DUAL_TABLE[counts[c4]].edges[edgeNums[2]];
 
-						triangles.push([
-							vertIdx[i + offs[2]],
-							vertIdx[i + offs[1]],
-							vertIdx[i + offs[3]]
-						]);
-					}
-				}
-			}
-			
+          triangles.push([
+            c1V,
+            c4V,
+            c2V
+          ]);
 
-			var verts = [];//DM_TABLE[counts[i]];
-
-			for (let vert of verts) {
-				let neighbor = i + vert.edge;
-				let neighborVerts = DM_TABLE[counts[neighbor]];
-
-				// need to choose the right vert for the 2 vert cases
-				// needs improvement, especially for 3d
-				let neighborVert = neighborVerts[vert.edge < 0 ? 0 : neighborVerts.length - 1];
-				
-				let position = vert.pos;
-				let x = i % DIMENSION;
-				let y = Math.floor(i / DIMENSION);
-
-				let position2 = neighborVert.pos;
-				let neighborX = neighbor % DIMENSION;
-				let neighborY = Math.floor(neighbor / DIMENSION);
-
-				edges.push([
-					[position[0] + x, position[1] + y],
-					[position2[0] + neighborX, position2[1] + neighborY],
-				]);
-			}
-		}
-	}
+          triangles.push([
+            c2V,
+            c4V,
+            c3V
+          ]);
+        }
+      }
+    }
+  }
 }
 
 function march() {
