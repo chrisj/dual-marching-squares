@@ -2,7 +2,9 @@ var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
 
 var SIZE = canvas.width;
-var SPACING = Math.floor(SIZE / (DIMENSION - 1));
+var X_SPACING = Math.floor(SIZE / (X_DIM - 1));
+
+var Y_SPACING = Math.floor(SIZE / (Y_DIM - 1));
 
 var hover = null;
 
@@ -13,38 +15,43 @@ var pixelMode = false;
 function render() {
 	ctx.clearRect(0, 0, SIZE, SIZE);
 
-	ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
 
-	ctx.font = `${Math.floor(SPACING / 5)}px monospace`;
+	ctx.font = `${Math.floor(X_SPACING / 5)}px monospace`;
 
 	if (!cleanMode) {
 
 		ctx.beginPath();
-		for (var x = 1; x < DIMENSION - 1; x++) {
-			ctx.moveTo(x * SPACING - 0.5, 0);
-			ctx.lineTo(x * SPACING - 0.5, SIZE);
+		for (var x = 1; x < X_DIM - 1; x++) {
+			ctx.moveTo(x * X_SPACING - 0.5, 0);
+			ctx.lineTo(x * X_SPACING - 0.5, SIZE);
 		};
 		ctx.stroke();
 
 		ctx.beginPath();
-		for (var y = 1; y < DIMENSION - 1; y++) {
-			ctx.moveTo(0, y * SPACING - 0.5);
-			ctx.lineTo(SIZE, y * SPACING - 0.5);
+		for (var y = 1; y < Y_DIM - 1; y++) {
+			ctx.moveTo(0, y * Y_SPACING - 0.5);
+			ctx.lineTo(SIZE, y * Y_SPACING - 0.5);
 		};
 		ctx.stroke();
 
 		for (var i = 0; i < state.length; i++) {
 			if (state[i]) {
-				var x = i % DIMENSION;
-				var y = Math.floor(i / DIMENSION);
+				var x = i % X_DIM;
+				var y = Math.floor(i / X_DIM);
 
 				if (pixelMode) {
 					ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-					ctx.fillRect((x - 0.5) * SPACING, (y - 0.5) * SPACING, SPACING, SPACING);
+					ctx.fillRect((x - 0.5) * SPACING, (y - 0.5) * Y_SPACING, X_SPACING, Y_SPACING);
 				} else {
 					ctx.fillStyle = "black";
+
+					if (stateEdge[i]) {
+						ctx.fillStyle = "purple";
+					}
+
 					var circle = new Path2D();
-					circle.arc(x * SPACING, y * SPACING, SPACING / 15, 0, 2 * Math.PI);
+					circle.arc(x * X_SPACING, stateSmooth[i] * Y_SPACING, 3, 0, 2 * Math.PI);
 
 					ctx.fill(circle);
 				}
@@ -55,10 +62,10 @@ function render() {
 
 	// hover
 	if (!cleanMode && hover !== null) {
-		var x = hover % DIMENSION;
-		var y = Math.floor(hover / DIMENSION);
+		var x = hover % X_DIM;
+		var y = Math.floor(hover / X_DIM);
 		var circle = new Path2D();
-		circle.arc(x * SPACING, y * SPACING, SPACING / 15, 0, 2 * Math.PI);
+		circle.arc(x * X_SPACING, y * Y_SPACING, 5, 0, 2 * Math.PI);
 		if (state[hover]) {
 			ctx.fillStyle = "red";
 		} else {
@@ -74,10 +81,10 @@ function render() {
 		var pos2 = edges[i][1];
 		var edge = new Path2D();
 
-		var x1 = (pos1[0] * SPACING);
-		var y1 = (pos1[1] * SPACING);
-		var x2 = (pos2[0] * SPACING);
-		var y2 = (pos2[1] * SPACING);
+		var x1 = (pos1[0] * X_SPACING);
+		var y1 = (pos1[1] * Y_SPACING);
+		var x2 = (pos2[0] * X_SPACING);
+		var y2 = (pos2[1] * Y_SPACING);
 
 
 		var midX = Math.floor((x1 + x2) / 2);
@@ -85,8 +92,8 @@ function render() {
 
 		var normal = calculateNormal(edges[i]);
 
-		var normX = midX + normal[0] / 2 * SPACING;
-		var normY = midY + normal[1] / 2 * SPACING;
+		var normX = midX + normal[0] / 2 * X_SPACING;
+		var normY = midY + normal[1] / 2 * Y_SPACING;
 
 		ctx.strokeStyle = "black";
 
@@ -95,7 +102,7 @@ function render() {
 		ctx.stroke(edge);
 
 		// draw normal
-		if (!cleanMode) {
+		if (false && !cleanMode) {
 			ctx.strokeStyle = "blue";
 			edge = new Path2D();
 			edge.moveTo(midX, midY);
@@ -106,7 +113,7 @@ function render() {
 		// draw vertex
 		if (!cleanMode) {
 			var circle = new Path2D();
-			circle.arc(x1 * SPACING, y1 * SPACING, SPACING / 20, 0, 2 * Math.PI);
+			circle.arc(x1 * X_SPACING, y1 * Y_SPACING, X_SPACING / 20, 0, 2 * Math.PI);
 			ctx.fill(circle);
 		}
 	}
@@ -115,13 +122,13 @@ function render() {
 	if (!cleanMode) {
 		for (var i = 0; i < counts.length; i++) {
 			if (counts[i]) {
-				var x = i % DIMENSION;
-				var y = Math.floor(i / DIMENSION);
+				var x = i % X_DIM;
+				var y = Math.floor(i / X_DIM);
 
 				x += 0.1;
 				y += 0.2;
 
-				ctx.fillText(counts[i], x * SPACING, y * SPACING);
+				ctx.fillText(counts[i], x * X_SPACING, y * Y_SPACING);
 			}
 		}
 	}
@@ -138,6 +145,7 @@ function update() {
 	edges = [];
 	counts.fill(0);
 
+	zsmooth();
 	mesher();
 	render();
 }
@@ -149,10 +157,13 @@ function flipPixel(idx, on) {
 	}
 
 	state[idx] = 1 - state[idx];
+	console.log('flip', idx);
 	update();
 }
 
 document.addEventListener('keyup', function (e) {
+
+	console.log(e.keyCode);
 	if (e.keyCode === 32) {
 		update.dual = !update.dual;
 
@@ -165,6 +176,16 @@ document.addEventListener('keyup', function (e) {
 
 	if (e.keyCode === 80) {
 		pixelMode = !pixelMode;
+	}
+
+	if (e.keyCode === 83) {
+		DISABLE_SMOOTH = !DISABLE_SMOOTH;
+		vertices = [];
+		edges = [];
+		counts.fill(0);
+		zsmooth();
+		var mesher = update.dual ? dual_march : march;
+		mesher();
 	}
 
 	render();
@@ -181,10 +202,10 @@ document.addEventListener('mouseup', function (e) {
 
 function handleMouse(e, click) {
 	// var forceOn = click ? undefined : !e.shiftKey;
-	var gridX = Math.round(e.offsetX / SPACING);
-	var gridY = Math.round(e.offsetY / SPACING);
+	var gridX = Math.round(e.offsetX / X_SPACING);
+	var gridY = Math.round(e.offsetY / Y_SPACING);
 
-	if (gridX < 1 || gridX > DIMENSION - 2 || gridY < 1 || gridY > DIMENSION - 2) {
+	if (gridX < 1 || gridX > X_DIM - 2 || gridY < 1 || gridY > Y_DIM - 2) {
 		if (hover !== null) {
 			hover = null;
 			render();
@@ -192,7 +213,7 @@ function handleMouse(e, click) {
 		return;
 	}
 
-	var idx = gridY * DIMENSION + gridX;
+	var idx = gridY * X_DIM + gridX;
 
 	if (e.buttons) {
 		hover = null;
